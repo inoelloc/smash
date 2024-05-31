@@ -8,12 +8,13 @@ Getting Started
 Installation
 ------------
 
-`smash` can be installed with pip on **Linux**, **Windows** or from source and supports Python versions **3.9** to **3.11**.
+`smash` can be installed with pip on **Linux**, **Windows**, **MacOS** or from source and supports Python
+versions **3.9** to **3.12**.
 
 .. note::
 
-    We strongly recommend using `smash` on **Linux**, particularly if you are using it on a large dataset, as 
-    Fortran parallel computation is not supported on **Windows**. 
+    We strongly recommend using `smash` on **Linux** or **MacOS**, particularly if you are using it on a
+    large dataset, as Fortran parallel computation is not supported on **Windows** yet. 
 
 If you already have Python, you can install `smash` with:
 
