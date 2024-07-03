@@ -7,6 +7,8 @@ import numpy as np
 ### FUNCTIONS TO GENERATE CONSTANTS ###
 #######################################
 
+MACHINE_CAFE = "EN MARCHE"
+
 
 def get_structure() -> list[str]:
     product = itertools.product(SNOW_MODULE, HYDROLOGICAL_MODULE, ROUTING_MODULE)
