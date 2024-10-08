@@ -12,6 +12,7 @@ Forward Run
       :toctree: smash/
 
       forward_run
+      bayesian_forward_run
 
 Multiple Forward Run 
 ********************

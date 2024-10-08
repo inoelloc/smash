@@ -69,6 +69,52 @@ def test_sparse_forward_run():
         assert np.allclose(value, pytest.baseline[key][:], atol=1e-06, equal_nan=True), "sparse." + key
 
 
+def generic_bayesian_forward_run(model_structure: list[smash.Model], **kwargs) -> dict:
+    res = {}
+
+    ncpu = min(5, max(1, os.cpu_count() - 1))
+
+    for model in model_structure:
+        # % There is no snow data for the Cance dataset.
+        # % TODO: Add a dataset to test snow module
+        if model.setup.snow_module_present:
+            continue
+
+        # % Hybrid forward hydrological model with NN
+        if model.setup.n_layers > 0:
+            model.set_nn_parameters_weight(initializer="glorot_normal", random_state=11)
+
+        instance, ret = smash.bayesian_forward_run(
+            model,
+            common_options={"verbose": False, "ncpu": ncpu},
+            return_options={
+                "cost": True,
+                "log_lkh": True,
+            },
+        )
+
+        res[f"bayesian_forward_run.{instance.setup.structure}.cost"] = np.array(ret.cost, ndmin=1)
+        res[f"bayesian_forward_run.{instance.setup.structure}.log_lkh"] = np.array(ret.log_lkh, ndmin=1)
+
+    return res
+
+
+def test_bayesian_forward_run():
+    res = generic_bayesian_forward_run(pytest.model_structure)
+
+    for key, value in res.items():
+        # % Check qsim in run
+        assert np.allclose(value, pytest.baseline[key][:], atol=1e-06, equal_nan=True), key
+
+
+def test_sparse_bayesian_forward_run():
+    res = generic_bayesian_forward_run(pytest.sparse_model_structure)
+
+    for key, value in res.items():
+        # % Check qsim in sparse storage run
+        assert np.allclose(value, pytest.baseline[key][:], atol=1e-06, equal_nan=True), "sparse." + key
+
+
 def test_multiple_forward_run():
     instance = pytest.model.copy()
     ncpu = min(5, max(1, os.cpu_count() - 1))

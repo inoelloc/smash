@@ -37,8 +37,10 @@ from smash.core.model._standardize import (
     _standardize_set_serr_sigma_parameters_args,
 )
 from smash.core.simulation._doc import (
+    _bayesian_forward_run_doc_appender,
     _bayesian_optimize_doc_appender,
     _forward_run_doc_appender,
+    _model_bayesian_forward_run_doc_substitution,
     _model_bayesian_optimize_doc_substitution,
     _model_forward_run_doc_substitution,
     _model_multiset_estimate_doc_substitution,
@@ -63,8 +65,11 @@ from smash.core.simulation.optimize.optimize import (
     _bayesian_optimize,
     _optimize,
 )
-from smash.core.simulation.run._standardize import _standardize_forward_run_args
-from smash.core.simulation.run.run import _forward_run
+from smash.core.simulation.run._standardize import (
+    _standardize_bayesian_forward_run_args,
+    _standardize_forward_run_args,
+)
+from smash.core.simulation.run.run import _bayesian_forward_run, _forward_run
 from smash.factory.net._layers import _initialize_nn_parameter
 from smash.fcore._mwd_input_data import Input_DataDT
 from smash.fcore._mwd_mesh import MeshDT
@@ -88,7 +93,7 @@ if TYPE_CHECKING:
         BayesianOptimize,
         Optimize,
     )
-    from smash.core.simulation.run.run import ForwardRun, MultipleForwardRun
+    from smash.core.simulation.run.run import BayesianForwardRun, ForwardRun, MultipleForwardRun
     from smash.fcore._mwd_atmos_data import Atmos_DataDT
     from smash.fcore._mwd_nn_parameters import NN_ParametersDT
     from smash.fcore._mwd_physio_data import Physio_DataDT
@@ -2781,6 +2786,25 @@ class Model:
         args = _standardize_multiset_estimate_args(self, multiset, alpha, *args_options)
 
         return _multiset_estimate(self, *args)
+
+    @_model_bayesian_forward_run_doc_substitution
+    @_bayesian_forward_run_doc_appender
+    def bayesian_forward_run(
+        self,
+        mapping: str = "uniform",
+        optimizer: str | None = None,
+        optimize_options: dict[str, Any] | None = None,
+        cost_options: dict[str, Any] | None = None,
+        common_options: dict[str, Any] | None = None,
+        return_options: dict[str, Any] | None = None,
+    ) -> BayesianForwardRun | None:
+        args_options = [
+            deepcopy(arg) for arg in [optimize_options, cost_options, common_options, return_options]
+        ]
+
+        args = _standardize_bayesian_forward_run_args(self, mapping, optimizer, *args_options)
+
+        return _bayesian_forward_run(self, *args)
 
     @_model_bayesian_optimize_doc_substitution
     @_bayesian_optimize_doc_appender

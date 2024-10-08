@@ -21,8 +21,10 @@ from smash.core.simulation.options import (
     default_optimize_options,
 )
 from smash.core.simulation.run.run import (
+    BayesianForwardRun,
     ForwardRun,
     MultipleForwardRun,
+    bayesian_forward_run,
     forward_run,
     multiple_forward_run,
 )
@@ -41,6 +43,7 @@ __all__ = [
     "precipitation_indices",
     "forward_run",
     "multiple_forward_run",
+    "bayesian_forward_run",
     "optimize",
     "bayesian_optimize",
     "default_optimize_options",
@@ -52,6 +55,7 @@ __all__ = [
     "factory",
     "ForwardRun",
     "MultipleForwardRun",
+    "BayesianForwardRun",
     "Optimize",
     "BayesianOptimize",
     "MultisetEstimate",

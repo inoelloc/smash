@@ -1035,6 +1035,95 @@ array([[9.4571486e-05, 9.3920688e-05, 9.3143637e-05, ..., 1.7423288e+01,
 """
 )
 
+
+_bayesian_forward_run_doc = (
+    # % TODO FC: Add advanced user guide
+    """
+Run the bayesian forward Model.
+
+Parameters
+----------
+%(model_parameter)s
+
+"""
+    + _gen_docstring_from_base_doc(MAPPING_OPTIMIZER_BASE_DOC, ["mapping", "optimizer"], nindent=0)
+    + """
+
+optimize_options : `dict[str, Any]` or None, default None
+    Dictionary containing optimization options for fine-tuning the optimization process.
+    See `%(default_optimize_options_func)s` to retrieve the default optimize options based on the **mapping**
+    and **optimizer**.
+
+"""
+    + _gen_docstring_from_base_doc(
+        OPTIMIZE_OPTIONS_BASE_DOC,
+        OPTIMIZE_OPTIONS_KEYS_DOC,
+        nindent=1,
+    )
+    + """
+cost_options : `dict[str, Any]` or None, default None
+    Dictionary containing computation cost options for simulated and observed responses. The elements are:
+
+"""
+    + _gen_docstring_from_base_doc(
+        COST_OPTIONS_BASE_DOC,
+        DEFAULT_SIMULATION_COST_OPTIONS["bayesian_forward_run"].keys(),
+        nindent=1,
+    )
+    + """
+common_options : `dict[str, Any]` or None, default None
+    Dictionary containing common options with two elements:
+
+"""
+    + _gen_docstring_from_base_doc(
+        COMMON_OPTIONS_BASE_DOC, DEFAULT_SIMULATION_COMMON_OPTIONS.keys(), nindent=1
+    )
+    + """
+return_options : `dict[str, Any]` or None, default None
+    Dictionary containing return options to save additional simulation results. The elements are:
+
+"""
+    + _gen_docstring_from_base_doc(
+        RETURN_OPTIONS_BASE_DOC,
+        DEFAULT_SIMULATION_RETURN_OPTIONS["bayesian_forward_run"].keys(),
+        nindent=1,
+    )
+    + """
+Returns
+-------
+%(model_return)s
+bayesian_forward_run : `BayesianForwardRun` or None, default None
+    It returns an object containing additional simulation results with the keys defined in
+    **return_options**. If no keys are defined, it returns None.
+
+See Also
+--------
+BayesianForwardRun : Represents bayesian forward run optional results.
+
+Examples
+--------
+>>> from smash.factory import load_dataset
+>>> setup, mesh = load_dataset("cance")
+>>> model = smash.Model(setup, mesh)
+
+Run the bayesian direct Model
+
+>>> %(model_example_func)s
+</> Bayesian Forward Run
+
+Get the simulated discharges
+
+>>> %(model_example_response)s.response.q
+array([[1.9826430e-03, 1.3466669e-07, 6.7617895e-12, ..., 2.2796249e+01,
+        2.2655941e+01, 2.2517307e+01],
+       [2.3777038e-04, 7.3761623e-09, 1.7551447e-13, ..., 4.8298149e+00,
+        4.8079352e+00, 4.7862868e+00],
+       [2.9721676e-05, 5.4272520e-10, 8.4623445e-15, ..., 1.2818875e+00,
+        1.2760198e+00, 1.2702127e+00]], dtype=float32)
+"""
+)
+
+
 _bayesian_optimize_doc = (
     # % TODO FC: Add advanced user guide
     """
@@ -1887,7 +1976,7 @@ _forward_run_doc_appender = DocAppender(_forward_run_doc, indents=0)
 _smash_forward_run_doc_substitution = DocSubstitution(
     model_parameter="model : `Model`\n\tPrimary data structure of the hydrological model `smash`.",
     model_return="model : `Model`\n\t It returns an updated copy of the initial Model object.",
-    model_example_func="model_fwd = smash.forward_run()",
+    model_example_func="model_fwd = smash.forward_run(model)",
     model_example_response="model_fwd",
     percent="%",
 )
@@ -1911,7 +2000,7 @@ _smash_optimize_doc_substitution = DocSubstitution(
     parameters_note_serr_parameters="",
     bounds_get_serr_parameters_bounds="",
     model_return="model : `Model`\n\t It returns an updated copy of the initial Model object.",
-    model_example_func="model_opt = smash.optimize()",
+    model_example_func="model_opt = smash.optimize(model)",
     model_example_response="model_opt",
     percent="%",
 )
@@ -1960,7 +2049,7 @@ _smash_bayesian_optimize_doc_substitution = DocSubstitution(
     bounds_get_serr_parameters_bounds=", `Model.get_serr_mu_parameters_bounds` and "
     "`Model.get_serr_sigma_parameters_bounds`",
     model_return="model : `Model`\n\t It returns an updated copy of the initial Model object.",
-    model_example_func="model_bayes_opt = smash.bayesian_optimize()",
+    model_example_func="model_bayes_opt = smash.bayesian_optimize(model)",
     model_example_response="model_bayes_opt",
     percent="%",
 )
@@ -1977,6 +2066,40 @@ _model_bayesian_optimize_doc_substitution = DocSubstitution(
     "`Model.get_serr_sigma_parameters_bounds`",
     model_return="",
     model_example_func="model.bayesian_optimize()",
+    model_example_response="model",
+    percent="%",
+)
+
+_bayesian_forward_run_doc_appender = DocAppender(_bayesian_forward_run_doc, indents=0)
+_smash_bayesian_forward_run_doc_substitution = DocSubstitution(
+    model_parameter="model : `Model`\n\tPrimary data structure of the hydrological model `smash`.",
+    mapping_ann="",
+    optimizer_lbfgsb="- ``'lbfgsb'`` (for all mappings)",
+    default_optimizer_for_ann_mapping="",
+    default_optimize_options_func="default_bayesian_optimize_options",
+    parameters_serr_mu_parameters="- `Model.serr_mu_parameters`",
+    parameters_serr_sigma_parameters="- `Model.serr_sigma_parameters`",
+    parameters_note_serr_parameters=", `Model.serr_mu_parameters`, `Model.serr_sigma_parameters`",
+    bounds_get_serr_parameters_bounds=", `Model.get_serr_mu_parameters_bounds` and "
+    "`Model.get_serr_sigma_parameters_bounds`",
+    model_return="model : `Model`\n\t It returns an updated copy of the initial Model object.",
+    model_example_func="model_bayes_fwd = smash.bayesian_forward_run(model)",
+    model_example_response="model_bayes_fwd",
+    percent="%",
+)
+_model_bayesian_forward_run_doc_substitution = DocSubstitution(
+    model_parameter="",
+    mapping_ann="",
+    optimizer_lbfgsb="- ``'lbfgsb'`` (for all mappings)",
+    default_optimizer_for_ann_mapping="",
+    default_optimize_options_func="default_bayesian_optimize_options",
+    parameters_serr_mu_parameters="- `Model.serr_mu_parameters`",
+    parameters_serr_sigma_parameters="- `Model.serr_sigma_parameters`",
+    parameters_note_serr_parameters=", `Model.serr_mu_parameters`, `Model.serr_sigma_parameters`",
+    bounds_get_serr_parameters_bounds=", `Model.get_serr_mu_parameters_bounds` and "
+    "`Model.get_serr_sigma_parameters_bounds`",
+    model_return="",
+    model_example_func="model.bayesian_forward_run()",
     model_example_response="model",
     percent="%",
 )

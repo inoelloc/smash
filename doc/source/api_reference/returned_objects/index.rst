@@ -14,6 +14,7 @@ Simulation
     Samples
     MultipleForwardRun
     ForwardRun
+    BayesianForwardRun
     Optimize
     MultisetEstimate
     BayesianOptimize

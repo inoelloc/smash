@@ -997,6 +997,11 @@ DEFAULT_SIMULATION_COST_OPTIONS = {
         "wgauge": "mean",
         "event_seg": dict(zip(EVENT_SEG_KEYS[:2], [PEAK_QUANT, MAX_DURATION])),
     },
+    "bayesian_forward_run": {
+        "end_warmup": None,
+        "gauge": "dws",
+        "control_prior": None,
+    },
     "optimize": {
         "jobs_cmpt": "nse",
         "wjobs_cmpt": "mean",
@@ -1026,6 +1031,16 @@ DEFAULT_SIMULATION_RETURN_OPTIONS = {
         "internal_fluxes": False,
         "cost": False,
         "jobs": False,
+    },
+    "bayesian_forward_run": {
+        "time_step": "all",
+        "rr_states": False,
+        "q_domain": False,
+        "internal_fluxes": False,
+        "cost": False,
+        "log_lkh": False,
+        "log_prior": False,
+        "log_h": False,
     },
     "optimize": {
         "time_step": "all",

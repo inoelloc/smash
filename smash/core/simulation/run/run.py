@@ -11,10 +11,13 @@ from smash._constant import (
 )
 from smash.core.model._build_model import _map_dict_to_fortran_derived_type
 from smash.core.simulation._doc import (
+    _bayesian_forward_run_doc_appender,
     _forward_run_doc_appender,
     _multiple_forward_run_doc_appender,
+    _smash_bayesian_forward_run_doc_substitution,
     _smash_forward_run_doc_substitution,
 )
+from smash.core.simulation.optimize._tools import _handle_bayesian_optimize_control_prior
 from smash.core.simulation.run._standardize import (
     _standardize_multiple_forward_run_args,
 )
@@ -35,7 +38,14 @@ if TYPE_CHECKING:
     from smash.core.model.model import Model
     from smash.factory.samples.samples import Samples
 
-__all__ = ["MultipleForwardRun", "ForwardRun", "forward_run", "multiple_forward_run"]
+__all__ = [
+    "MultipleForwardRun",
+    "ForwardRun",
+    "BayesianForwardRun",
+    "forward_run",
+    "bayesian_forward_run",
+    "multiple_forward_run",
+]
 
 
 class MultipleForwardRun:
@@ -127,6 +137,66 @@ class ForwardRun:
             return self.__class__.__name__ + "()"
 
 
+class BayesianForwardRun:
+    """
+    Represents bayesian forward run optional results.
+
+    Attributes
+    ----------
+    time_step : `pandas.DatetimeIndex`
+        A list of length *n* containing the returned time steps.
+
+    rr_states : `FortranDerivedTypeArray`
+        A list of length *n* of `RR_StatesDT <fcore._mwd_rr_states.RR_StatesDT>` for each **time_step**.
+
+    q_domain : `numpy.ndarray`
+        An array of shape *(nrow, ncol, n)* representing simulated discharges on the domain for each
+        **time_step**.
+
+    internal_fluxes : `dict[str, numpy.ndarray]`
+        A dictionary where keys are the names of the internal fluxes and the values are array of
+        shape *(nrow, ncol, n)* representing an internal flux on the domain for each **time_step**.
+
+    cost : `float`
+        Cost value.
+
+    log_lkh : `float`
+        Log likelihood component value.
+
+    log_prior : `float`
+        Log prior component value.
+
+    log_h : `float`
+        Log h component value.
+
+    Notes
+    -----
+    The object's available attributes depend on what is requested by the user in **return_options** during a
+    call to `bayesian_forward_run`.
+
+    See Also
+    --------
+    smash.bayesian_forward_run : Run the bayesian forward Model.
+    """
+
+    def __init__(self, data: dict[str, Any] | None = None):
+        if data is None:
+            data = {}
+
+        self.__dict__.update(data)
+
+    def __repr__(self):
+        dct = self.__dict__
+
+        if dct.keys():
+            m = max(map(len, list(dct.keys()))) + 1
+            return "\n".join(
+                [k.rjust(m) + ": " + repr(type(v)) for k, v in sorted(dct.items()) if not k.startswith("_")]
+            )
+        else:
+            return self.__class__.__name__ + "()"
+
+
 @_smash_forward_run_doc_substitution
 @_forward_run_doc_appender
 def forward_run(
@@ -173,6 +243,108 @@ def _forward_run(
 
     # % Map return_options dict to derived type
     _map_dict_to_fortran_derived_type(return_options, wrap_returns)
+
+    wrap_forward_run(
+        model.setup,
+        model.mesh,
+        model._input_data,
+        model._parameters,
+        model._output,
+        wrap_options,
+        wrap_returns,
+    )
+
+    fret = {}
+    pyret = {}
+
+    for key in return_options["keys"]:
+        try:
+            value = getattr(wrap_returns, key)
+        except Exception:
+            continue
+        if hasattr(value, "copy"):
+            value = value.copy()
+        fret[key] = value
+
+    ret = {**fret, **pyret}
+
+    if ret:
+        if "internal_fluxes" in ret:
+            ret["internal_fluxes"] = {
+                key: ret["internal_fluxes"][..., i]
+                for i, key in enumerate(STRUCTURE_RR_INTERNAL_FLUXES[model.setup.structure])
+            }
+
+        # % Add time_step to the object
+        if any(k in SIMULATION_RETURN_OPTIONS_TIME_STEP_KEYS for k in ret.keys()):
+            ret["time_step"] = return_options["time_step"].copy()
+        return ForwardRun(ret)
+
+
+@_smash_bayesian_forward_run_doc_substitution
+@_bayesian_forward_run_doc_appender
+def bayesian_forward_run(
+    model: Model,
+    mapping: str = "uniform",
+    optimizer: str | None = None,
+    optimize_options: dict[str, Any] | None = None,
+    cost_options: dict[str, Any] | None = None,
+    common_options: dict[str, Any] | None = None,
+    return_options: dict[str, Any] | None = None,
+) -> Model | tuple[Model, BayesianForwardRun]:
+    wmodel = model.copy()
+
+    ret_bayesian_forward_run = wmodel.bayesian_forward_run(
+        mapping, optimizer, optimize_options, cost_options, common_options, return_options
+    )
+
+    if ret_bayesian_forward_run is None:
+        return wmodel
+    else:
+        return (wmodel, ret_bayesian_forward_run)
+
+
+def _bayesian_forward_run(
+    model: Model,
+    mapping: str,
+    optimizer: str,
+    optimize_options: dict,
+    cost_options: dict,
+    common_options: dict,
+    return_options: dict,
+) -> ForwardRun | None:
+    if common_options["verbose"]:
+        print("</> Bayesian Forward Run")
+
+    wrap_options = OptionsDT(
+        model.setup,
+        model.mesh,
+        cost_options["njoc"],
+        cost_options["njrc"],
+    )
+
+    wrap_returns = ReturnsDT(
+        model.setup,
+        model.mesh,
+        return_options["nmts"],
+        return_options["fkeys"],
+    )
+
+    # % Map optimize_options dict to derived type
+    _map_dict_to_fortran_derived_type(optimize_options, wrap_options.optimize)
+
+    # % Map cost_options dict to derived type
+    # % Control prior handled after
+    _map_dict_to_fortran_derived_type(cost_options, wrap_options.cost, skip=["control_prior"])
+
+    # % Map common_options dict to derived type
+    _map_dict_to_fortran_derived_type(common_options, wrap_options.comm)
+
+    # % Map return_options dict to derived type
+    _map_dict_to_fortran_derived_type(return_options, wrap_returns)
+
+    # % Control prior check
+    _handle_bayesian_optimize_control_prior(model, cost_options["control_prior"], wrap_options)
 
     wrap_forward_run(
         model.setup,

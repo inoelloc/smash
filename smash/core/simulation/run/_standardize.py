@@ -9,6 +9,10 @@ from smash.core.simulation._standardize import (
     _standardize_simulation_common_options,
     _standardize_simulation_cost_options,
     _standardize_simulation_cost_options_finalize,
+    _standardize_simulation_mapping,
+    _standardize_simulation_optimize_options,
+    _standardize_simulation_optimize_options_finalize,
+    _standardize_simulation_optimizer,
     _standardize_simulation_parameters_feasibility,
     _standardize_simulation_return_options,
     _standardize_simulation_return_options_finalize,
@@ -46,6 +50,45 @@ def _standardize_forward_run_args(
     _standardize_simulation_return_options_finalize(model, return_options)
 
     return (cost_options, common_options, return_options)
+
+
+def _standardize_bayesian_forward_run_args(
+    model: Model,
+    mapping: str,
+    optimizer: str | None,
+    optimize_options: dict | None,
+    cost_options: dict | None,
+    common_options: dict | None,
+    return_options: dict | None,
+) -> AnyTuple:
+    func_name = "bayesian_forward_run"
+    # % In case model.set_rr_parameters or model.set_rr_initial_states were not used
+    _standardize_simulation_parameters_feasibility(model)
+
+    mapping = _standardize_simulation_mapping(mapping)
+
+    optimizer = _standardize_simulation_optimizer(mapping, optimizer)
+
+    optimize_options = _standardize_simulation_optimize_options(
+        model, func_name, mapping, optimizer, optimize_options
+    )
+
+    cost_options = _standardize_simulation_cost_options(model, func_name, cost_options)
+
+    common_options = _standardize_simulation_common_options(common_options)
+
+    return_options = _standardize_simulation_return_options(model, func_name, return_options)
+
+    # % Finalize optimize options
+    _standardize_simulation_optimize_options_finalize(model, mapping, optimizer, optimize_options)
+
+    # % Finalize cost_options
+    _standardize_simulation_cost_options_finalize(model, func_name, cost_options)
+
+    # % Finalize return_options
+    _standardize_simulation_return_options_finalize(model, return_options)
+
+    return (mapping, optimizer, optimize_options, cost_options, common_options, return_options)
 
 
 def _standardize_multiple_forward_run_args(
