@@ -126,12 +126,19 @@ foreach i : range(f90wrap_f90_output.length())
     f90wrap_f90_sources += f90wrap_sources[i]
 endforeach
 
-f2py_f90wrap = ['f2py-f90wrap', '@INPUT@', '--build-dir', '@OUTDIR@', '--lower']
+# f2py_f90wrap = ['f2py-f90wrap', '@INPUT@', '--build-dir', '@OUTDIR@', '--lower']
+f2py_f90wrap = [
+    py,
+    files('../../f90wrap/generate_f2py-f90wrap.py'),
+    '@INPUT@',
+    '--build-dir', '@OUTDIR@',
+]
 
 f2py_f90wrap_sources = custom_target(
     input: f90wrap_f90_sources,
     output: ['_libfcoremodule.c', '_libfcore-f2pywrappers.f'],
-    command: f2py_f90wrap + ['-m', '_libfcore'],
+    command: f2py_f90wrap,
+    # command: f2py_f90wrap + ['-m', '_libfcore'],
 )
 
 py.install_sources(
